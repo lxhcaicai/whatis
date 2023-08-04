@@ -2,7 +2,55 @@
 name = "whatis"
 version = "0.1.0"
 edition = "2021"
+authors = ["lxhcaicai"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[[bin]]
+name = "what"
+path = "src/main.rs"
+
 [dependencies]
+anyhow = "1.0.70"
+colored = "2.0.0"
+get_if_addrs = "0.5.3"
+human-panic = "1.1.4"
+itertools = "0.10.5"
+local-ip-address = "0.5.1"
+rsntp = "3.0.2"
+serde_json = "1.0.95"
+sysinfo = "0.28.4"
+
+[dependencies.chrono]
+version = "0.4.24"
+default-features = false
+
+[dependencies.clap]
+version = "4.2.1"
+features = ["derive"]
+
+[dev-dependencies.serde]
+version = "1.0.159"
+features = ["serde_derive"]
+default-features = false
+
+[dependencies.tokio]
+version = "1.27.0"
+default-features = false
+features = ["macros"]
+
+[dependencies.trust-dns-resolver]
+version = "0.22.0"
+features = ["tokio-runtime", "system-config"]
+default-features = false
+
+[dependencies.whoami]
+version = "1.4.0"
+default-features = false
+
+[package.metadata.deb]
+section = "main"
+
+[package.metadata.rpm]
+package = "whatis"
+
