@@ -29,7 +29,7 @@ default-features = false
 version = "4.2.1"
 features = ["derive"]
 
-[dev-dependencies.serde]
+[dependencies.serde]
 version = "1.0.159"
 features = ["serde_derive"]
 default-features = false
