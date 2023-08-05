@@ -6,4 +6,8 @@ pub async fn hostname() -> Result<Named> {
     create_named(|| async{ whoami::hostname().to_string() }, NamedKind::Hostname).await
 }
 
+pub async fn username() -> Result<Named> {
+    create_named(|| async {whoami::username().to_string()}, NamedKind::Username).await
+}
+
 

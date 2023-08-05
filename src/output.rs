@@ -11,16 +11,19 @@ use serde::ser::{Serialize, SerializeMap, Serializer};
 ///例如:
 pub enum Named {
     Hostname(String),
+    Username(String),
 }
 
 pub enum NamedKind {
     Hostname,
+    Username,
 }
 
 impl Named {
     fn value(&self) -> &str {
         match self {
-            Named::Hostname(value) => value,
+            Named::Hostname(value)
+            | Named::Username(value)  => value,
         }
     }
 }
@@ -36,6 +39,7 @@ impl Serialize for Named {
         let mut map = serializer.serialize_map(Some(1))?;
         match self {
             Named::Hostname(value) => map.serialize_entry("hostname", value)?,
+            Named::Username(value) => map.serialize_entry("username", value)?,
         }
         map.end()
     }
@@ -51,5 +55,6 @@ where
     let value = func().await;
     match data_type {
         NamedKind::Hostname => Ok(Named::Hostname(value)),
+        NamedKind::Username => Ok(Named::Username(value)),
     }
 }

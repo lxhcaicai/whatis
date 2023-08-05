@@ -56,6 +56,11 @@ enum Commands {
     #[command(about = "Display your system's hostname")]
     #[command(long_about = "Show the hostname assigned to your system.")]
     Hostname,
+
+    #[command(name = "username")]
+    #[command(about = "Display your current system user's username")]
+    #[command(long_about = "Show the username of the currently logged-in system user.")]
+    Username,
 }
 
 #[tokio::main]
@@ -87,6 +92,10 @@ async fn main() -> Result<()> {
                 system::hostname().await
                     .with_context(|| "looking up the system's hostname failed")?
             ),
+            Commands::Username => CommandResult::Username(
+                system::username().await
+                    .with_context(|| "looking up the user's username failed")?
+            )
         };
 
         match cli.format {
@@ -112,6 +121,7 @@ enum CommandResult {
     Datetime(datetime::Datetime),
     Dns(Vec<String>),
     Hostname(output::Named),
+    Username(output::Named),
 }
 
 
@@ -125,6 +135,7 @@ impl Display for CommandResult {
                 write!(f, "{}", dns.join("\n"))
             },
             CommandResult::Hostname(hostname) => hostname.fmt(f),
+            CommandResult::Username(username) => username.fmt(f),
         }
     }
 }
@@ -139,6 +150,7 @@ impl serde::Serialize for CommandResult {
             CommandResult::Datetime(datetime) => datetime.serialize(serializer),
             CommandResult::Dns(dns) => dns.serialize(serializer),
             CommandResult::Hostname(hostname) => hostname.serialize(serializer),
+            CommandResult::Username(username) => username.serialize(serializer),
         }
     }
 }
