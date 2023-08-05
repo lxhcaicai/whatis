@@ -11,6 +11,7 @@ mod datetime;
 mod network;
 mod output;
 mod system;
+mod format;
 
 #[derive(Debug,Parser)]
 #[command(name = "what")]
@@ -81,6 +82,11 @@ enum Commands {
     #[command(about = "Display your system's CPU")]
     #[command(long_about = "Show the name of the CPU installed on your system.")]
     Cpu,
+
+    #[command(name = "ram")]
+    #[command(about = "Display your system's RAM")]
+    #[command(long_about = "Show the amount of RAM installed and used on your system.")]
+    Ram,
 }
 
 #[tokio::main]
@@ -131,6 +137,10 @@ async fn main() -> Result<()> {
             Commands::Cpu => CommandResult::Cpu(
                 system::cpus().await
                     .with_context(|| "looking up the system's CPU information failed")?
+            ),
+            Commands::Ram => CommandResult::Ram(
+                system::ram().await
+                    .with_context(|| "looking up the system's RAM information failed")?
             )
         };
 
@@ -161,7 +171,8 @@ enum CommandResult {
     DeviceName(output::Named),
     Os(output::Named),
     Architecture(output::Named),
-    Cpu(system::Cpu)
+    Cpu(system::Cpu),
+    Ram(system::Ram),
 }
 
 
@@ -180,6 +191,7 @@ impl Display for CommandResult {
             CommandResult::Os(os) => os.fmt(f),
             CommandResult::Architecture(architecture) => architecture.fmt(f),
             CommandResult::Cpu(cpu) => cpu.fmt(f),
+            CommandResult::Ram(ram) => ram.fmt(f),
         }
     }
 }
@@ -199,6 +211,7 @@ impl serde::Serialize for CommandResult {
             CommandResult::Os(os) => os.serialize(serializer),
             CommandResult::Architecture(architecture) => architecture.serialize(serializer),
             CommandResult::Cpu(cpu) => cpu.serialize(serializer),
+            CommandResult::Ram(ram) => ram.serialize(serializer),
         }
     }
 }
