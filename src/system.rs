@@ -10,4 +10,8 @@ pub async fn username() -> Result<Named> {
     create_named(|| async {whoami::username().to_string()}, NamedKind::Username).await
 }
 
+pub async fn device_name() -> Result<Named> {
+    create_named(|| async {whoami::devicename().to_string()}, NamedKind::DeviceName).await
+}
+
 

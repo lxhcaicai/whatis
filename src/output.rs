@@ -12,18 +12,21 @@ use serde::ser::{Serialize, SerializeMap, Serializer};
 pub enum Named {
     Hostname(String),
     Username(String),
+    DeviceName(String),
 }
 
 pub enum NamedKind {
     Hostname,
     Username,
+    DeviceName,
 }
 
 impl Named {
     fn value(&self) -> &str {
         match self {
             Named::Hostname(value)
-            | Named::Username(value)  => value,
+            | Named::Username(value)
+            | Named::DeviceName(value) => value,
         }
     }
 }
@@ -40,6 +43,7 @@ impl Serialize for Named {
         match self {
             Named::Hostname(value) => map.serialize_entry("hostname", value)?,
             Named::Username(value) => map.serialize_entry("username", value)?,
+            Named::DeviceName(value) => map.serialize_entry("device_name", value)?,
         }
         map.end()
     }
@@ -56,5 +60,6 @@ where
     match data_type {
         NamedKind::Hostname => Ok(Named::Hostname(value)),
         NamedKind::Username => Ok(Named::Username(value)),
+        NamedKind::DeviceName => Ok(Named::DeviceName(value)),
     }
 }

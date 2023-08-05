@@ -61,6 +61,11 @@ enum Commands {
     #[command(about = "Display your current system user's username")]
     #[command(long_about = "Show the username of the currently logged-in system user.")]
     Username,
+
+    #[command(name = "device-name")]
+    #[command(about = "Display your device's name")]
+    #[command(long_about = "Show the configured name of your device.")]
+    DeviceName,
 }
 
 #[tokio::main]
@@ -95,6 +100,10 @@ async fn main() -> Result<()> {
             Commands::Username => CommandResult::Username(
                 system::username().await
                     .with_context(|| "looking up the user's username failed")?
+            ),
+            Commands::DeviceName => CommandResult::DeviceName(
+                system::device_name().await
+                    .with_context(|| "looking up the systems' device name failed")?
             )
         };
 
@@ -122,6 +131,7 @@ enum CommandResult {
     Dns(Vec<String>),
     Hostname(output::Named),
     Username(output::Named),
+    DeviceName(output::Named),
 }
 
 
@@ -136,6 +146,7 @@ impl Display for CommandResult {
             },
             CommandResult::Hostname(hostname) => hostname.fmt(f),
             CommandResult::Username(username) => username.fmt(f),
+            CommandResult::DeviceName(device_name) => device_name.fmt(f),
         }
     }
 }
@@ -151,6 +162,7 @@ impl serde::Serialize for CommandResult {
             CommandResult::Dns(dns) => dns.serialize(serializer),
             CommandResult::Hostname(hostname) => hostname.serialize(serializer),
             CommandResult::Username(username) => username.serialize(serializer),
+            CommandResult::DeviceName(device_name) => device_name.serialize(serializer),
         }
     }
 }
