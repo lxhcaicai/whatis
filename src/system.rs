@@ -14,4 +14,8 @@ pub async fn device_name() -> Result<Named> {
     create_named(|| async {whoami::devicename().to_string()}, NamedKind::DeviceName).await
 }
 
+pub async fn os() -> Result<Named> {
+    create_named(|| async {whoami::distro().to_string()}, NamedKind::Os).await
+}
+
 

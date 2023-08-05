@@ -13,12 +13,14 @@ pub enum Named {
     Hostname(String),
     Username(String),
     DeviceName(String),
+    Os(String),
 }
 
 pub enum NamedKind {
     Hostname,
     Username,
     DeviceName,
+    Os,
 }
 
 impl Named {
@@ -26,7 +28,8 @@ impl Named {
         match self {
             Named::Hostname(value)
             | Named::Username(value)
-            | Named::DeviceName(value) => value,
+            | Named::DeviceName(value)
+            | Named::Os(value)=> value,
         }
     }
 }
@@ -44,6 +47,7 @@ impl Serialize for Named {
             Named::Hostname(value) => map.serialize_entry("hostname", value)?,
             Named::Username(value) => map.serialize_entry("username", value)?,
             Named::DeviceName(value) => map.serialize_entry("device_name", value)?,
+            Named::Os(value) => map.serialize_entry("os", value)?,
         }
         map.end()
     }
@@ -61,5 +65,6 @@ where
         NamedKind::Hostname => Ok(Named::Hostname(value)),
         NamedKind::Username => Ok(Named::Username(value)),
         NamedKind::DeviceName => Ok(Named::DeviceName(value)),
+        NamedKind::Os => Ok(Named::Os(value)),
     }
 }

@@ -66,6 +66,11 @@ enum Commands {
     #[command(about = "Display your device's name")]
     #[command(long_about = "Show the configured name of your device.")]
     DeviceName,
+
+    #[command(name = "os")]
+    #[command(about = "Display your system's OS name and version")]
+    #[command(long_about = "Show the name and version of the operating system installed on your system.")]
+    Os,
 }
 
 #[tokio::main]
@@ -104,6 +109,10 @@ async fn main() -> Result<()> {
             Commands::DeviceName => CommandResult::DeviceName(
                 system::device_name().await
                     .with_context(|| "looking up the systems' device name failed")?
+            ),
+            Commands::Os => CommandResult::Os(
+                system::os().await
+                    .with_context(|| "looking up the system's OS name failed")?
             )
         };
 
@@ -132,6 +141,7 @@ enum CommandResult {
     Hostname(output::Named),
     Username(output::Named),
     DeviceName(output::Named),
+    Os(output::Named),
 }
 
 
@@ -147,6 +157,7 @@ impl Display for CommandResult {
             CommandResult::Hostname(hostname) => hostname.fmt(f),
             CommandResult::Username(username) => username.fmt(f),
             CommandResult::DeviceName(device_name) => device_name.fmt(f),
+            CommandResult::Os(os) => os.fmt(f),
         }
     }
 }
@@ -163,6 +174,7 @@ impl serde::Serialize for CommandResult {
             CommandResult::Hostname(hostname) => hostname.serialize(serializer),
             CommandResult::Username(username) => username.serialize(serializer),
             CommandResult::DeviceName(device_name) => device_name.serialize(serializer),
+            CommandResult::Os(os) => os.serialize(serializer),
         }
     }
 }
