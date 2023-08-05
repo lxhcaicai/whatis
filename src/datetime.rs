@@ -1,4 +1,4 @@
-use std::fmt::{Display, Formatter};
+use std::fmt::{Display, Formatter, write};
 
 use anyhow::Result;
 use colored::*;
@@ -86,4 +86,26 @@ pub async fn time() -> Result<Time> {
     t.offset = sntp_time.clock_offset().as_secs_f64();
 
     Ok(t)
+}
+
+
+/// 返回系统日期和时间。
+pub async fn dateTime() -> Result<Datetime> {
+    let date = date().await?;
+    let time = time().await?;
+
+    Ok(Datetime{date,time})
+}
+
+#[derive(Serialize)]
+pub struct Datetime {
+    date:Date,
+    time:Time,
+}
+
+impl Display for Datetime {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f,"{}", self.date)?;
+        write!(f,"\n{}",self.time)
+    }
 }

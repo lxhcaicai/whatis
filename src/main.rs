@@ -36,6 +36,13 @@ enum Commands {
     clock server, in a 24-hour human-readable format.\n
     Example: 20:20:2 UTC +02:00 ±0.0672 seconds")]
     Time,
+
+    #[command(name = "datetime")]
+    #[command(about = "Display your system's current date and time")]
+    #[command(long_about = "Show the current date and time on your system, along with the offset from\n\
+    the central NTP clock server, in a human-readable format.\n\
+    Example: Saturday, 8 April, 2023, week 14 20:20:2 UTC +02:00 ±0.0684 seconds")]
+    Datetime,
 }
 
 #[tokio::main]
@@ -55,6 +62,10 @@ async fn main() -> Result<()> {
                 datetime::time().await
                     .with_context(||"looking up the system's time failed" )?
             ),
+            Commands::Datetime => CommandResult::Datetime(
+                datetime::dateTime().await
+                    .with_context(|| "looking up the system's datetime failed")?
+            )
         };
 
         match cli.format {
@@ -77,6 +88,7 @@ async fn main() -> Result<()> {
 enum CommandResult {
     Date(datetime::Date),
     Time(datetime::Time),
+    Datetime(datetime::Datetime)
 }
 
 
@@ -85,6 +97,7 @@ impl Display for CommandResult {
         match self {
             CommandResult::Date(date) => date.fmt(f),
             CommandResult::Time(time) => time.fmt(f),
+            CommandResult::Datetime(datetime) => datetime.fmt(f),
         }
     }
 }
@@ -95,7 +108,8 @@ impl serde::Serialize for CommandResult {
     {
         match self {
             CommandResult::Date(date) => date.serialize(serializer),
-            CommandResult::Time(time) => time.serialize(serializer)
+            CommandResult::Time(time) => time.serialize(serializer),
+            CommandResult::Datetime(datetime) => datetime.serialize(serializer),
         }
     }
 }
