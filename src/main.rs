@@ -71,6 +71,11 @@ enum Commands {
     #[command(about = "Display your system's OS name and version")]
     #[command(long_about = "Show the name and version of the operating system installed on your system.")]
     Os,
+
+    #[command(name = "architecture")]
+    #[command(about = "Display your system's CPU architecture")]
+    #[command(long_about = "Show the architecture of the CPU installed on your system.")]
+    Architecture,
 }
 
 #[tokio::main]
@@ -113,6 +118,10 @@ async fn main() -> Result<()> {
             Commands::Os => CommandResult::Os(
                 system::os().await
                     .with_context(|| "looking up the system's OS name failed")?
+            ),
+            Commands::Architecture => CommandResult::Architecture(
+                system::architecture().await
+                    .with_context(|| "looking up the CPU's architecture fialed")?
             )
         };
 
@@ -142,6 +151,7 @@ enum CommandResult {
     Username(output::Named),
     DeviceName(output::Named),
     Os(output::Named),
+    Architecture(output::Named),
 }
 
 
@@ -158,6 +168,7 @@ impl Display for CommandResult {
             CommandResult::Username(username) => username.fmt(f),
             CommandResult::DeviceName(device_name) => device_name.fmt(f),
             CommandResult::Os(os) => os.fmt(f),
+            CommandResult::Architecture(architecture) => architecture.fmt(f),
         }
     }
 }
@@ -175,6 +186,7 @@ impl serde::Serialize for CommandResult {
             CommandResult::Username(username) => username.serialize(serializer),
             CommandResult::DeviceName(device_name) => device_name.serialize(serializer),
             CommandResult::Os(os) => os.serialize(serializer),
+            CommandResult::Architecture(architecture) => architecture.serialize(serializer),
         }
     }
 }

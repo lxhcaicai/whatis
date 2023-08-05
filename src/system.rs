@@ -18,4 +18,7 @@ pub async fn os() -> Result<Named> {
     create_named(|| async {whoami::distro().to_string()}, NamedKind::Os).await
 }
 
+pub async fn architecture() -> Result<Named> {
+    create_named(|| async {whoami::arch().to_string()}, NamedKind::Architecture).await
+}
 
