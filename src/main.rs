@@ -76,6 +76,11 @@ enum Commands {
     #[command(about = "Display your system's CPU architecture")]
     #[command(long_about = "Show the architecture of the CPU installed on your system.")]
     Architecture,
+
+    #[command(name = "cpu")]
+    #[command(about = "Display your system's CPU")]
+    #[command(long_about = "Show the name of the CPU installed on your system.")]
+    Cpu,
 }
 
 #[tokio::main]
@@ -122,6 +127,10 @@ async fn main() -> Result<()> {
             Commands::Architecture => CommandResult::Architecture(
                 system::architecture().await
                     .with_context(|| "looking up the CPU's architecture fialed")?
+            ),
+            Commands::Cpu => CommandResult::Cpu(
+                system::cpus().await
+                    .with_context(|| "looking up the system's CPU information failed")?
             )
         };
 
@@ -152,6 +161,7 @@ enum CommandResult {
     DeviceName(output::Named),
     Os(output::Named),
     Architecture(output::Named),
+    Cpu(system::Cpu)
 }
 
 
@@ -169,6 +179,7 @@ impl Display for CommandResult {
             CommandResult::DeviceName(device_name) => device_name.fmt(f),
             CommandResult::Os(os) => os.fmt(f),
             CommandResult::Architecture(architecture) => architecture.fmt(f),
+            CommandResult::Cpu(cpu) => cpu.fmt(f),
         }
     }
 }
@@ -187,6 +198,7 @@ impl serde::Serialize for CommandResult {
             CommandResult::DeviceName(device_name) => device_name.serialize(serializer),
             CommandResult::Os(os) => os.serialize(serializer),
             CommandResult::Architecture(architecture) => architecture.serialize(serializer),
+            CommandResult::Cpu(cpu) => cpu.serialize(serializer),
         }
     }
 }
