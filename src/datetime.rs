@@ -43,3 +43,47 @@ impl From<DateTime<Local>> for Date {
         }
     }
 }
+
+#[derive(Serialize)]
+pub struct Time {
+    hour:u8,
+    minute:u8,
+    second:u8,
+    timezone:String,
+    offset:f64,
+}
+
+impl Display for Time{
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f,"{}", self.hour.to_string().bold())?;
+        write!(f, ":{}", self.minute.to_string().bold())?;
+        write!(f, ":{}", self.second.to_string())?;
+        write!(f," UTC {}", self.timezone.bright_cyan())?;
+        write!(f, "\n±{:.4} seconds", self.offset.to_string().bright_magenta())
+    }
+}
+
+impl From<DateTime<Local>> for Time {
+    fn from(dt: DateTime<Local>) -> Self {
+        Time {
+            hour:dt.format("%H").to_string().parse::<u8>().unwrap(),
+            minute:dt.format("%M").to_string().parse::<u8>().unwrap(),
+            second: dt.format("%S").to_string().parse::<u8>().unwrap(),
+            timezone: dt.format("%Z").to_string(),
+            offset: 0.0
+        }
+    }
+}
+
+pub async fn time() -> Result<Time> {
+
+    let sntp_client = AsyncSntpClient::new();
+    let sntp_time = sntp_client.synchronize("pool.ntp.org").await?;
+    let now = sntp_time.datetime().into_chrono_datetime()?;
+    let now_with_tz = now.with_timezone(&Local);
+
+    let mut t = Time::from(now_with_tz);
+    t.offset = sntp_time.clock_offset().as_secs_f64();
+
+    Ok(t)
+}

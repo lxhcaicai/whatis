@@ -1,9 +1,10 @@
-use std::fmt::Display;
+use std::fmt::{Display, Pointer};
 
 use anyhow::{Result, Context};
 use clap::{Parser, Subcommand, ValueEnum};
 use human_panic::setup_panic;
 use serde::{Serialize, Serializer};
+use crate::Commands::Time;
 
 mod country;
 mod datetime;
@@ -28,6 +29,13 @@ enum Commands {
     Example: Saturday, 8 April, 2023, week 14")]
     Date,
 
+
+    #[command(name = "time")]
+    #[command(about = "Display your system's current time")]
+    #[command(long_about = "Show the current time on your system, along with the offset from the central NTP\n\
+    clock server, in a 24-hour human-readable format.\n
+    Example: 20:20:2 UTC +02:00 ±0.0672 seconds")]
+    Time,
 }
 
 #[tokio::main]
@@ -42,6 +50,10 @@ async fn main() -> Result<()> {
             Commands::Date => CommandResult::Date(
                 datetime::date().await
                     .with_context(|| "looking up the system's date failed")?
+            ),
+            Commands::Time => CommandResult::Time(
+                datetime::time().await
+                    .with_context(||"looking up the system's time failed" )?
             ),
         };
 
@@ -64,6 +76,7 @@ async fn main() -> Result<()> {
 /// 并允许将结果序列化为所需的输出格式
 enum CommandResult {
     Date(datetime::Date),
+    Time(datetime::Time),
 }
 
 
@@ -71,6 +84,7 @@ impl Display for CommandResult {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             CommandResult::Date(date) => date.fmt(f),
+            CommandResult::Time(time) => time.fmt(f),
         }
     }
 }
@@ -81,6 +95,7 @@ impl serde::Serialize for CommandResult {
     {
         match self {
             CommandResult::Date(date) => date.serialize(serializer),
+            CommandResult::Time(time) => time.serialize(serializer)
         }
     }
 }
