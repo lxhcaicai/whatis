@@ -9,6 +9,8 @@ use crate::Commands::Time;
 mod country;
 mod datetime;
 mod network;
+mod output;
+mod system;
 
 #[derive(Debug,Parser)]
 #[command(name = "what")]
@@ -49,6 +51,11 @@ enum Commands {
     #[command(about = "Display your system's DNS servers")]
     #[command(long_about = "Show the DNS servers configured on your system, listed in the order they are used.")]
     Dns,
+
+    #[command(name = "hostname")]
+    #[command(about = "Display your system's hostname")]
+    #[command(long_about = "Show the hostname assigned to your system.")]
+    Hostname,
 }
 
 #[tokio::main]
@@ -76,6 +83,10 @@ async fn main() -> Result<()> {
                 network::list_dns_servers().await
                     .with_context(|| "listing the system's dns servers failed")?
             ),
+            Commands::Hostname => CommandResult::Hostname(
+                system::hostname().await
+                    .with_context(|| "looking up the system's hostname failed")?
+            ),
         };
 
         match cli.format {
@@ -100,6 +111,7 @@ enum CommandResult {
     Time(datetime::Time),
     Datetime(datetime::Datetime),
     Dns(Vec<String>),
+    Hostname(output::Named),
 }
 
 
@@ -111,7 +123,8 @@ impl Display for CommandResult {
             CommandResult::Datetime(datetime) => datetime.fmt(f),
             CommandResult::Dns(dns) => {
                 write!(f, "{}", dns.join("\n"))
-            }
+            },
+            CommandResult::Hostname(hostname) => hostname.fmt(f),
         }
     }
 }
@@ -125,6 +138,7 @@ impl serde::Serialize for CommandResult {
             CommandResult::Time(time) => time.serialize(serializer),
             CommandResult::Datetime(datetime) => datetime.serialize(serializer),
             CommandResult::Dns(dns) => dns.serialize(serializer),
+            CommandResult::Hostname(hostname) => hostname.serialize(serializer),
         }
     }
 }
