@@ -8,6 +8,7 @@ use crate::Commands::Time;
 
 mod country;
 mod datetime;
+mod network;
 
 #[derive(Debug,Parser)]
 #[command(name = "what")]
@@ -43,6 +44,11 @@ enum Commands {
     the central NTP clock server, in a human-readable format.\n\
     Example: Saturday, 8 April, 2023, week 14 20:20:2 UTC +02:00 ±0.0684 seconds")]
     Datetime,
+
+    #[command(name = "dns")]
+    #[command(about = "Display your system's DNS servers")]
+    #[command(long_about = "Show the DNS servers configured on your system, listed in the order they are used.")]
+    Dns,
 }
 
 #[tokio::main]
@@ -65,7 +71,11 @@ async fn main() -> Result<()> {
             Commands::Datetime => CommandResult::Datetime(
                 datetime::dateTime().await
                     .with_context(|| "looking up the system's datetime failed")?
-            )
+            ),
+            Commands::Dns => CommandResult::Dns(
+                network::list_dns_servers().await
+                    .with_context(|| "listing the system's dns servers failed")?
+            ),
         };
 
         match cli.format {
@@ -88,7 +98,8 @@ async fn main() -> Result<()> {
 enum CommandResult {
     Date(datetime::Date),
     Time(datetime::Time),
-    Datetime(datetime::Datetime)
+    Datetime(datetime::Datetime),
+    Dns(Vec<String>),
 }
 
 
@@ -98,6 +109,9 @@ impl Display for CommandResult {
             CommandResult::Date(date) => date.fmt(f),
             CommandResult::Time(time) => time.fmt(f),
             CommandResult::Datetime(datetime) => datetime.fmt(f),
+            CommandResult::Dns(dns) => {
+                write!(f, "{}", dns.join("\n"))
+            }
         }
     }
 }
@@ -110,6 +124,7 @@ impl serde::Serialize for CommandResult {
             CommandResult::Date(date) => date.serialize(serializer),
             CommandResult::Time(time) => time.serialize(serializer),
             CommandResult::Datetime(datetime) => datetime.serialize(serializer),
+            CommandResult::Dns(dns) => dns.serialize(serializer),
         }
     }
 }
