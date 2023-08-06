@@ -1,4 +1,7 @@
+use std::fmt::{Display, Formatter};
 use anyhow::Result;
+use serde::Serialize;
+use tokio::task::spawn_blocking;
 use trust_dns_resolver::{system_conf, TokioAsyncResolver, TokioHandle};
 
 
@@ -39,4 +42,50 @@ pub async fn list_dns_servers() -> Result<Vec<String>> {
 
     nameservers.dedup();
     Ok(nameservers)
+}
+
+///列出系统的网络接口。
+///
+///  # Returns
+///
+/// 网络接口按照系统配置中定义的顺序返回。
+///
+///
+/// # Errors
+///
+/// 如果无法读取系统配置
+///
+/// # Examples
+///
+/// ```
+/// let interfaces = ip::list_interfaces().unwrap();
+/// println!("interfaces: {:?}", interfaces);
+/// ```
+pub async fn interfaces()  -> Result<Vec<Interface>> {
+    spawn_blocking(||  get_if_addrs::get_if_addrs())
+        .await??
+        .into_iter()
+        .try_fold(Vec::new(), |mut acc, i|  {
+            acc.push(Interface{
+                name: i.name.clone(),
+                ip: i.ip().to_string(),
+            });
+            Ok(acc)
+        })
+}
+
+
+#[derive(Serialize)]
+pub struct Interface {
+    ///网络接口名称。
+    name: String,
+
+    ///网口的IP地址。
+    ip: String,
+}
+
+impl Display for Interface {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}\t{}", self.name, self.ip)
+    }
 }

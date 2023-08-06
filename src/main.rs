@@ -93,6 +93,11 @@ enum Commands {
     #[command(about = "Display your system's disks")]
     #[command(long_about = "Lists all the disks installed on your system, providing details such as disk name, type, free space, total capacity, and percentage of free space.")]
     Disks,
+
+    #[command(name = "interfaces")]
+    #[command(about = "Display your system's network interfaces")]
+    #[command(long_about = "List all the network interfaces configured on your system, presented in the order they are used.")]
+    Interfaces,
 }
 
 #[tokio::main]
@@ -151,6 +156,10 @@ async fn main() -> Result<()> {
             Commands::Disks => CommandResult::Disks(
                 storage::list_disks().await
                     .with_context(|| "listing the disks failed")?
+            ),
+            Commands::Interfaces => CommandResult::Interfaces(
+                network::interfaces().await
+                    .with_context(|| "listing the system's network interfaces failed")?
             )
         };
 
@@ -183,7 +192,8 @@ enum CommandResult {
     Architecture(output::Named),
     Cpu(system::Cpu),
     Ram(system::Ram),
-    Disks(Vec<storage::DiskInfo>)
+    Disks(Vec<storage::DiskInfo>),
+    Interfaces(Vec<network::Interface>)
 }
 
 
@@ -214,6 +224,17 @@ impl Display for CommandResult {
                         .join("\n")
                 )
             },
+            CommandResult::Interfaces(interfaces) => {
+                write!(
+                    f,
+                    "{}",
+                    interfaces
+                        .iter()
+                        .map(ToString::to_string)
+                        .collect::<Vec<String>>()
+                        .join("\n")
+                )
+            },
         }
     }
 }
@@ -235,6 +256,7 @@ impl serde::Serialize for CommandResult {
             CommandResult::Cpu(cpu) => cpu.serialize(serializer),
             CommandResult::Ram(ram) => ram.serialize(serializer),
             CommandResult::Disks(disks) => disks.serialize(serializer),
+            CommandResult::Interfaces(interfaces) => interfaces.serialize(serializer),
         }
     }
 }
