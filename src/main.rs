@@ -12,6 +12,7 @@ mod network;
 mod output;
 mod system;
 mod format;
+mod storage;
 
 #[derive(Debug,Parser)]
 #[command(name = "what")]
@@ -87,6 +88,11 @@ enum Commands {
     #[command(about = "Display your system's RAM")]
     #[command(long_about = "Show the amount of RAM installed and used on your system.")]
     Ram,
+
+    #[command(name = "disks")]
+    #[command(about = "Display your system's disks")]
+    #[command(long_about = "Lists all the disks installed on your system, providing details such as disk name, type, free space, total capacity, and percentage of free space.")]
+    Disks,
 }
 
 #[tokio::main]
@@ -141,6 +147,10 @@ async fn main() -> Result<()> {
             Commands::Ram => CommandResult::Ram(
                 system::ram().await
                     .with_context(|| "looking up the system's RAM information failed")?
+            ),
+            Commands::Disks => CommandResult::Disks(
+                storage::list_disks().await
+                    .with_context(|| "listing the disks failed")?
             )
         };
 
@@ -173,6 +183,7 @@ enum CommandResult {
     Architecture(output::Named),
     Cpu(system::Cpu),
     Ram(system::Ram),
+    Disks(Vec<storage::DiskInfo>)
 }
 
 
@@ -192,6 +203,17 @@ impl Display for CommandResult {
             CommandResult::Architecture(architecture) => architecture.fmt(f),
             CommandResult::Cpu(cpu) => cpu.fmt(f),
             CommandResult::Ram(ram) => ram.fmt(f),
+            CommandResult::Disks(disks) =>  {
+                write!(
+                    f,
+                    "{}",
+                    disks
+                        .iter()
+                        .map(ToString::to_string)
+                        .collect::<Vec<String>>()
+                        .join("\n")
+                )
+            },
         }
     }
 }
@@ -212,6 +234,7 @@ impl serde::Serialize for CommandResult {
             CommandResult::Architecture(architecture) => architecture.serialize(serializer),
             CommandResult::Cpu(cpu) => cpu.serialize(serializer),
             CommandResult::Ram(ram) => ram.serialize(serializer),
+            CommandResult::Disks(disks) => disks.serialize(serializer),
         }
     }
 }
