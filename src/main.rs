@@ -1,4 +1,4 @@
-use std::fmt::{Display, Pointer};
+use std::fmt::{Display, Pointer, write};
 
 use anyhow::{Result, Context};
 use clap::{Parser, Subcommand, ValueEnum};
@@ -98,6 +98,16 @@ enum Commands {
     #[command(about = "Display your system's network interfaces")]
     #[command(long_about = "List all the network interfaces configured on your system, presented in the order they are used.")]
     Interfaces,
+
+    #[command(name = "ips")]
+    #[command(about = "Display your IP addresses")]
+    #[command(long_about = "Find all IP addresses associated with your system, both local and external.\n\
+    By default, it shows both public and local IP addresses.\n\
+    Use the --only flag to display one specific category.")]
+    Ips {
+        #[arg(long)]
+        only:Option<network::IpCategory>
+    }
 }
 
 #[tokio::main]
@@ -160,7 +170,62 @@ async fn main() -> Result<()> {
             Commands::Interfaces => CommandResult::Interfaces(
                 network::interfaces().await
                     .with_context(|| "listing the system's network interfaces failed")?
-            )
+            ),
+            Commands::Ips {only} => match only {
+                Some(network::IpCategory::Public) => {
+                    let public_ip = network::query_public_ip(
+                        network::OPENDNS_SERVER_HOST,
+                        network::DNS_DEFAULT_PORT,
+                    ).await
+                        .with_context(|| {
+                            format!(
+                                "looking up public ip failed; reason: querying dns server {} on port {} failed",
+                                network::OPENDNS_SERVER_HOST,
+                                network::DNS_DEFAULT_PORT,
+                            )
+                        })?;
+                    CommandResult::Ips(vec![network::Ip{
+                        category: network::IpCategory::Public,
+                        address: public_ip,
+                    }])
+                },
+                Some(network::IpCategory::Local) => {
+                    let local_ip = local_ip_address::local_ip()
+                        .with_context(|| "looking up local ip failed; reason: querying local ip address failed")?;
+
+                    CommandResult::Ips(vec![network::Ip{
+                        category: network::IpCategory::Local,
+                        address: local_ip,
+                    }])
+                },
+                Some(network::IpCategory::Any) | None => {
+                    let public_ip = network::query_public_ip(
+                        network::OPENDNS_SERVER_HOST,
+                        network::DNS_DEFAULT_PORT,
+                    ).await
+                        .with_context(|| {
+                            format!(
+                                "listing ips failed; reason: querying dns server {} on port {} failed",
+                                network::OPENDNS_SERVER_HOST,
+                                network::DNS_DEFAULT_PORT,
+                            )
+                        })?;
+
+                    let local_ip = local_ip_address::local_ip()
+                        .with_context(|| "listing ips failed; reason: querying local ip address failed")?;
+
+                    CommandResult::Ips(vec![
+                        network::Ip{
+                            category: network::IpCategory::Public,
+                            address: public_ip,
+                        },
+                        network::Ip{
+                            category: network::IpCategory::Local,
+                            address: local_ip,
+                        },
+                    ])
+                }
+            }
         };
 
         match cli.format {
@@ -193,7 +258,8 @@ enum CommandResult {
     Cpu(system::Cpu),
     Ram(system::Ram),
     Disks(Vec<storage::DiskInfo>),
-    Interfaces(Vec<network::Interface>)
+    Interfaces(Vec<network::Interface>),
+    Ips(Vec<network::Ip>),
 }
 
 
@@ -235,6 +301,10 @@ impl Display for CommandResult {
                         .join("\n")
                 )
             },
+            CommandResult::Ips(ips) => {
+                let ips = ips.iter().map(ToString::to_string).collect::<Vec<String>>();
+                write!(f,"{}", ips.join("\n"))
+            },
         }
     }
 }
@@ -257,6 +327,7 @@ impl serde::Serialize for CommandResult {
             CommandResult::Ram(ram) => ram.serialize(serializer),
             CommandResult::Disks(disks) => disks.serialize(serializer),
             CommandResult::Interfaces(interfaces) => interfaces.serialize(serializer),
+            CommandResult::Ips(ips) => ips.serialize(serializer),
         }
     }
 }

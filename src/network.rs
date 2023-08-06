@@ -1,8 +1,11 @@
 use std::fmt::{Display, Formatter};
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use anyhow::Result;
-use serde::Serialize;
+use clap::ValueEnum;
+use serde::{Deserialize, Serialize};
 use tokio::task::spawn_blocking;
 use trust_dns_resolver::{system_conf, TokioAsyncResolver, TokioHandle};
+use trust_dns_resolver::config::{NameServerConfig, Protocol, ResolverConfig, ResolverOpts};
 
 
 /// 列出系统配置中的DNS服务器。
@@ -87,5 +90,103 @@ pub struct Interface {
 impl Display for Interface {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}\t{}", self.name, self.ip)
+    }
+}
+
+/// 保存IP地址的类别。类别可以是公共的、本地的或任意的。
+#[derive(Copy, Clone, Debug, Deserialize, PartialEq, Eq, PartialOrd, Ord,Serialize, ValueEnum)]
+pub enum IpCategory {
+    #[clap(name = "public")]
+    Public,
+
+    #[clap(name = "local")]
+    Local,
+
+    #[clap(name = "any")]
+    Any,
+}
+
+impl Display for IpCategory {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            IpCategory::Public => write!(f, "public"),
+            IpCategory::Local => write!(f, "local"),
+            IpCategory::Any => write!(f, "*"),
+        }
+    }
+}
+
+///默认的DNS服务器端口
+///
+/// 此常量作为默认值用于查询公共IP地址
+pub const DNS_DEFAULT_PORT:u16 = 53;
+
+
+/// openns服务器主机
+///
+/// 此常量作为默认值用于查询公共IP地址
+pub const OPENDNS_SERVER_HOST:&str = "208.67.222.222";
+
+/// 从提供的dns服务器上查询公网IP地址
+/// 只返回IPv4地址。
+///
+/// # Arguments
+///
+/// * `dns_server_host` - 要查询公网IP地址的DNS服务器主机
+/// * `dns_server_port` - 查询公网IP地址的DNS服务器端口
+///
+/// # Returns
+///
+/// The public IP address.
+///
+/// # Errors
+///
+/// 如果无法解析DNS服务器主机，或者无法查询到DNS服务器。
+///
+/// # Examples
+///
+/// ```
+/// use std::net::IpAddr;
+///
+/// let public_ip = ip::query_public_ip(ip::OPENDNS_SERVER_HOST, 53).unwrap();
+/// println!("public ip: {}", public_ip);
+/// ```
+pub async fn query_public_ip(dns_server_host:&str, dns_server_port:u16) -> Result<IpAddr> {
+
+    // 设置解析器配置
+    let dns_server_addr  = SocketAddr::new(dns_server_host.parse()?, dns_server_port);
+    let nameserver_config = NameServerConfig::new(dns_server_addr, Protocol::Udp);
+    let resolver_config = ResolverConfig::from_parts(None,vec![], vec![nameserver_config]);
+
+
+    let mut resolver_opts = ResolverOpts::default();
+    resolver_opts.ndots = 1;
+    resolver_opts.timeout = std::time::Duration::from_secs(5);
+
+    //创建解析器
+    let resolver = TokioAsyncResolver::new(resolver_config, resolver_opts,TokioHandle)?;
+
+    //向OpenDNS服务器查询公网IP地址
+    let ipv4_response = resolver.ipv4_lookup("myip.opendns.com").await?;
+
+    let ipv4: &Ipv4Addr = ipv4_response.iter().next().unwrap();
+
+    Ok(IpAddr::V4(*ipv4))
+
+}
+
+/// 分类IP地址
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Ip {
+    /// ip 地址
+    pub address: IpAddr,
+
+    /// ip 类别
+    pub category: IpCategory,
+}
+
+impl Display for Ip {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}\t{}", self.category, self.address)
     }
 }
